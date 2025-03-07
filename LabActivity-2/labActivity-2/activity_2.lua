@@ -6,6 +6,7 @@ LIGHT_THRESHOLD = 1.5
 PROXIMITY_THRESHOLD = 0.1
 
 n_steps = 0
+pos_light = 0
 
 
 --[[ This function is executed every time you press the 'execute'
@@ -33,18 +34,16 @@ function step()
 	-- Check obstacles
 	sensors = {3, 2, 1, 24, 23, 22}
 	obstacle_detected = false
-	sensor_with_obstacle = 0
 	for i = 1, #sensors do
 		index = sensors[i]
 		if robot.proximity[index].value > PROXIMITY_THRESHOLD then
 			obstacle_detected = true
-			sensor_with_obstacle = i
 			break
 		end
 	end
 	
 	if obstacle_detected then
-		if sensor_with_obstacle = 3 or sensor_with_obstacle = 2 or sensor_with_obstacle = 3
+		if pos_light == 1 then
 			robot.wheels.set_velocity(MAX_VELOCITY, - MAX_VELOCITY)
 		else
 			robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
@@ -83,10 +82,12 @@ function findLights()
     elseif left_light > front_light and left_light > right_light then
         -- Turn left if the left side has the most light
         robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
+        pos_light = 0
         robot.leds.set_all_colors("blue") -- Light detected on the left
     elseif right_light > front_light and right_light > left_light then
         -- Turn right if the right side has the most light
         robot.wheels.set_velocity(MAX_VELOCITY, -MAX_VELOCITY)
+        pos_light = 1
         robot.leds.set_all_colors("green") -- Light detected on the right
     else
         -- If no significant light is detected, move randomly

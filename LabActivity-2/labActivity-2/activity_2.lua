@@ -3,6 +3,7 @@
 MOVE_STEPS = 15
 MAX_VELOCITY = 10
 LIGHT_THRESHOLD = 1.5
+PROXIMITY_THRESHOLD = 0.1
 
 n_steps = 0
 
@@ -29,8 +30,30 @@ function step()
 	end
 	robot.wheels.set_velocity(left_v,right_v)
 	
-	findLights()
-
+	-- Check obstacles
+	sensors = {3, 2, 1, 24, 23, 22}
+	obstacle_detected = false
+	sensor_with_obstacle = 0
+	for i = 1, #sensors do
+		index = sensors[i]
+		if robot.proximity[index].value > PROXIMITY_THRESHOLD then
+			obstacle_detected = true
+			sensor_with_obstacle = i
+			break
+		end
+	end
+	
+	if obstacle_detected then
+		if sensor_with_obstacle = 3 or sensor_with_obstacle = 2 or sensor_with_obstacle = 3
+			robot.wheels.set_velocity(MAX_VELOCITY, - MAX_VELOCITY)
+		else
+			robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
+		end
+		robot.leds.set_all_colors("red")  -- Obstacle detected
+	else
+		findLights()
+	end
+		
 end
 
 function findLights()

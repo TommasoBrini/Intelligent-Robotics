@@ -2,12 +2,12 @@
 
 MOVE_STEPS = 15
 MAX_VELOCITY = 15
-LIGHT_THRESHOLD = 0.1
-OBSTACLE_THRESHOLD = 0.1
-SENSOR_SENSITIVITY = 0.5
+LIGHT_THRESHOLD = 0.05
+OBSTACLE_THRESHOLD = 0.05
 
 n_steps = 0
 behaviour_active = false
+finish = false
 
 --[[ This function is executed every time you press the 'execute'
      button ]]
@@ -24,9 +24,16 @@ end
 --[[ This function is executed at each time step
      It must contain the logic of your controller ]]
 function step()
+	if finish then
+		return
+	end
 	n_steps = n_steps + 1
 	behavior_active = false
 
+
+	-- LEVEL 3 Stop under light
+	stop()
+	
 	-- LEVEL 2 Avoid Obstacle
 	avoid_obstacles()
 	
@@ -96,7 +103,7 @@ function avoid_obstacles()
 		return
 	end
 	
-	sensors = {5, 4, 3, 2, 1, 24, 23, 22, 21, 20}
+	sensors = {1, 2, 24, 23}
     obstacle_detected = false
     closest_obstacle_distance = math.huge
     direction = nil
@@ -114,16 +121,35 @@ function avoid_obstacles()
 	if direction then
 		log("avoid_obstacle")
 		behavior_active = true
-		if direction < 5 then
-			left_v = MAX_VELOCITY * (1 + SENSOR_SENSITIVITY)
-            right_v = MAX_VELOCITY * (1 - SENSOR_SENSITIVITY)
+		if direction <= 2 then
+			left_v = MAX_VELOCITY
+            right_v = -MAX_VELOCITY 
 		else
-			left_v = MAX_VELOCITY * (1 - SENSOR_SENSITIVITY)
-            right_v = MAX_VELOCITY * (1 + SENSOR_SENSITIVITY)
+			left_v = -MAX_VELOCITY 
+            right_v = MAX_VELOCITY
 		end
 	end	
 	
 end
+
+-- Level 3 - Stop
+function stop()
+	
+	if behavior_active then 
+		return
+	end
+	
+    ground_value = robot.motor_ground[1].value
+    if ground_value == 0 then
+        left_v = 0
+        right_v = 0
+        robot.leds.set_all_colors("red")
+        log("Stop")
+        behavior_active = true
+        finish = true
+    end
+end
+	
 
 --[[ This function is executed every time you press the 'reset'
      button in the GUI. It is supposed to restore the state

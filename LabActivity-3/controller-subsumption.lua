@@ -3,8 +3,10 @@
 MOVE_STEPS = 15
 MAX_VELOCITY = 15
 LIGHT_THRESHOLD = 0.1
+OBSTACLE_THRESHOLD = 0.1
 
 n_steps = 0
+behaviour_active = false
 
 --[[ This function is executed every time you press the 'execute'
      button ]]
@@ -22,66 +24,100 @@ end
      It must contain the logic of your controller ]]
 function step()
 	n_steps = n_steps + 1
+	behavior_active = false
 
+	-- LEVEL 2 Avoid Obstacle
+	avoid_obstacles()
+	
 	-- LEVEL 1 Find Light --
-	if find_light() == true then
-		log("find-light")
-		return
-	end
+	find_light()
 	
 	-- LEVEL 0 Move Random --
 	move_random()	
+	
+	robot.wheels.set_velocity(left_v, right_v)
 		
 end
 	
 -- Level 0 --
 function move_random()
-	log("move_random")
+	if behavior_active then 
+		return
+	end
+	
 	if n_steps % MOVE_STEPS == 0 then
 		left_v = robot.random.uniform(0, MAX_VELOCITY)
 		right_v = robot.random.uniform(0, MAX_VELOCITY)
 	end
-	robot.wheels.set_velocity(left_v, right_v)	
+	
+	log("move_random")
+	
+	robot.leds.set_all_colors("black")
+	
 end
 
 -- Level 1 -- 
 function find_light()
+
+	if behavior_active then 
+		return
+	end
 	
-	light_sensors = {}  
+	total_light = 0
+	weighted_direction = 0
+	 
     for i = 1, #robot.light do
-        light_sensors[i] = robot.light[i].value
+    	intensity = robot.light[i].value
+    	total_light = total_light + intensity
+    	weighted_direction = weighted_direction + intensity * (i - 1)
     end
-
-    -- Calculate the sum of light intensities for the front, left, and right sides
-    left_light = light_sensors[5] + light_sensors[6] + light_sensors[7] + light_sensors[8]  -- Left side
-    front_light = light_sensors[23] + light_sensors[24] + light_sensors[1] + light_sensors[2]  -- Front side
-    right_light = light_sensors[17] + light_sensors[18] + light_sensors[19] + light_sensors[20]  -- Right side
-
-    -- Choose the direction with the most light
-    if front_light < LIGHT_THRESHOLD and left_light < LIGHT_THRESHOLD and right_light < LIGHT_THRESHOLD then
-    	-- no light detected
-    	return false
-    elseif front_light > left_light and front_light > right_light then
-        -- Move forward if the front has the most light
-        robot.wheels.set_velocity(MAX_VELOCITY, MAX_VELOCITY)
-        robot.leds.set_all_colors("yellow")  -- Light detected in front
-        return true
-    elseif left_light > front_light and left_light > right_light then
-        -- Turn left if the left side has the most light
-        robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
-        robot.leds.set_all_colors("blue")  -- Light detected on the left
-        return true
-    elseif right_light > front_light and right_light > left_light then
-        -- Turn right if the right side has the most light
-        robot.wheels.set_velocity(MAX_VELOCITY, -MAX_VELOCITY)
-        robot.leds.set_all_colors("green")  -- Light detected on the right
-        return true
-    else
-        -- no light detected
-        return false
+    
+    if total_light < LIGHT_THRESHOLD then
+    	return
     end
+    
+    avg_sensor = weighted_direction / total_light
+    angle = (avg_sensor / (#robot.light - 1)) * math.pi * 2
+    
+    left_v = MAX_VELOCITY * (1 - math.sin(angle))
+    right_v = MAX_VELOCITY * (1 + math.sin(angle))
+    
+    robot.leds.set_all_colors("yellow")
+    
+    log("Find light")
+    behavior_active = true
 end
 
+function avoid_obstacles()
+	
+	if behavior_active then 
+		return
+	end
+	
+	sensors = {3, 2, 1, 24, 23, 22}
+	obstacle_detected = false
+	for i = 1, #sensors do
+		index = sensors[i]
+		if robot.proximity[index].value > OBSTACLE_THRESHOLD then
+			obstacle_detected = true
+			direction = i
+			break
+		end
+	end
+	
+	if obstacle_detected then
+		log("avoid_obstacle")
+		behavior_active = true
+		if direction == 1 or direction == 2 or direction == 3 then
+			left_v = -MAX_VELOCITY
+			right_v = MAX_VELOCITY
+		else
+			left_v = MAX_VELOCITY
+			right_v = -MAX_VELOCITY
+		end
+	end	
+	
+end
 
 --[[ This function is executed every time you press the 'reset'
      button in the GUI. It is supposed to restore the state

@@ -4,6 +4,7 @@ MOVE_STEPS = 15
 MAX_VELOCITY = 15
 LIGHT_THRESHOLD = 0.1
 OBSTACLE_THRESHOLD = 0.1
+SENSOR_SENSITIVITY = 0.5
 
 n_steps = 0
 behaviour_active = false
@@ -88,32 +89,37 @@ function find_light()
     behavior_active = true
 end
 
+-- Level 2 - Avoid obstacles
 function avoid_obstacles()
 	
 	if behavior_active then 
 		return
 	end
 	
-	sensors = {3, 2, 1, 24, 23, 22}
-	obstacle_detected = false
+	sensors = {5, 4, 3, 2, 1, 24, 23, 22, 21, 20}
+    obstacle_detected = false
+    closest_obstacle_distance = math.huge
+    direction = nil
 	for i = 1, #sensors do
-		index = sensors[i]
-		if robot.proximity[index].value > OBSTACLE_THRESHOLD then
-			obstacle_detected = true
-			direction = i
-			break
-		end
-	end
+        index = sensors[i]
+        proximity_value = robot.proximity[index].value
+        if proximity_value > OBSTACLE_THRESHOLD then
+            if proximity_value < closest_obstacle_distance then
+                closest_obstacle_distance = proximity_value
+                direction = i
+            end
+        end
+    end
 	
-	if obstacle_detected then
+	if direction then
 		log("avoid_obstacle")
 		behavior_active = true
-		if direction == 1 or direction == 2 or direction == 3 then
-			left_v = -MAX_VELOCITY
-			right_v = MAX_VELOCITY
+		if direction < 5 then
+			left_v = MAX_VELOCITY * (1 + SENSOR_SENSITIVITY)
+            right_v = MAX_VELOCITY * (1 - SENSOR_SENSITIVITY)
 		else
-			left_v = MAX_VELOCITY
-			right_v = -MAX_VELOCITY
+			left_v = MAX_VELOCITY * (1 - SENSOR_SENSITIVITY)
+            right_v = MAX_VELOCITY * (1 + SENSOR_SENSITIVITY)
 		end
 	end	
 	

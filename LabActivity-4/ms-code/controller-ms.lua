@@ -9,6 +9,9 @@ MOVE_STEPS = 15
 MAX_VELOCITY = 15
 
 
+function map_value(value, min_in, max_in, min_out, max_out)
+	return min_out + (value - min_in) * (max_out - min_out) / (max_in - min_in)
+ end
 
 --[[ This function is executed every time you press the 'execute'
      button ]]
@@ -62,6 +65,16 @@ function step()
 	
 	vl = v - L/2 * w
 	vr = v + L/2 * w
+
+	-- Trova il massimo valore assoluto tra vl e vr
+	local max_wheel_speed = math.max(math.abs(vl), math.abs(vr))
+
+	-- Se è maggiore di 15, scala entrambi proporzionalmente
+	if max_wheel_speed > MAX_VELOCITY then
+		local scale = MAX_VELOCITY / max_wheel_speed
+		vl = vl * scale
+		vr = vr * scale
+	end
 	
 	robot.wheels.set_velocity(vl, vr)
 	

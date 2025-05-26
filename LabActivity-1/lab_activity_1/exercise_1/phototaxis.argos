@@ -29,7 +29,7 @@
         <differential_steering implementation="default" noise_level="0.0" />
         <footbot_light implementation="rot_z_only" show_rays="false" noise_level="0.0" />
       </sensors>
-      <params script="exercise_1.lua" />
+      <params script="phototaxis.lua" />
     </lua_controller>
  
   </controllers>
@@ -56,7 +56,7 @@
   
   <!-- Randomizing the position of the light -->
     <distribute>
-      <position method="uniform" min="-1.9,-1.9,0.5" max="1.9,1.9,0.5" />
+      <position method="uniform" min="-1.7,-1.7,0.5" max="1.7,1.7,0.5" />
       <orientation method="uniform" min="0,0,0" max="360,0,0" />
       <entity quantity="1" max_trials="100">
         <light id="light"
@@ -66,12 +66,6 @@
       </entity>
     </distribute>
     
-<!--     Place the robot in a given precise position -->
-<!--    <foot-bot id="fb">
-      <controller config="lua" />
-      <body position="0.2,0.3,0" orientation="0,0,0" />
-    </foot-bot>-->
-
 <!--     If you want to place the robot(s) in a random position you may want to use this piece of code -->
 <!-- 	The number of robots can be specificed by changing the field quantity in entity -->
     <distribute>

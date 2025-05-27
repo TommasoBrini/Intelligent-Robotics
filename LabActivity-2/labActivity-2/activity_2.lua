@@ -4,9 +4,10 @@ MOVE_STEPS = 15
 MAX_VELOCITY = 10
 LIGHT_THRESHOLD = 1.5
 PROXIMITY_THRESHOLD = 0.1
+LIGHT_RIGHT = 1
+LIGHT_LEFT = 0
 
-n_steps = 0
-pos_light = 0
+pos_light = LIGHT_LEFT
 
 
 --[[ This function is executed every time you press the 'execute'
@@ -24,13 +25,6 @@ end
 --[[ This function is executed at each time step
      It must contain the logic of your controller ]]
 function step()
-	n_steps = n_steps + 1
-	if n_steps % MOVE_STEPS == 0 then
-		left_v = robot.random.uniform(0,MAX_VELOCITY)
-		right_v = robot.random.uniform(0,MAX_VELOCITY)
-	end
-	robot.wheels.set_velocity(left_v,right_v)
-	
 	-- Check obstacles
 	sensors = {3, 2, 1, 24, 23, 22}
 	obstacle_detected = false
@@ -43,7 +37,7 @@ function step()
 	end
 	
 	if obstacle_detected then
-		if pos_light == 1 then
+		if pos_light == LIGHT_RIGHT then
 			robot.wheels.set_velocity(MAX_VELOCITY, - MAX_VELOCITY)
 		else
 			robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
@@ -62,12 +56,6 @@ function findLights()
         light_sensors[i] = robot.light[i].value
     end
     
-    -- Log light sensor values for debugging
-    log("Light sensor values: ")
-    for i = 1, #light_sensors do
-        log("Sensor " .. i .. ": " .. light_sensors[i])
-    end
-	
 	-- Check which direction has the most light
     -- We will consider the robot's front, left, and right sensors
     left_light = light_sensors[5] + light_sensors[6] + light_sensors[7] + light_sensors[8] -- Left side
@@ -82,12 +70,12 @@ function findLights()
     elseif left_light > front_light and left_light > right_light then
         -- Turn left if the left side has the most light
         robot.wheels.set_velocity(-MAX_VELOCITY, MAX_VELOCITY)
-        pos_light = 0
+        pos_light = LIGHT_LEFT
         robot.leds.set_all_colors("blue") -- Light detected on the left
     elseif right_light > front_light and right_light > left_light then
         -- Turn right if the right side has the most light
         robot.wheels.set_velocity(MAX_VELOCITY, -MAX_VELOCITY)
-        pos_light = 1
+        pos_light = LIGHT_RIGHT
         robot.leds.set_all_colors("green") -- Light detected on the right
     else
         -- If no significant light is detected, move randomly

@@ -3,18 +3,15 @@
 MOVE_STEPS = 15
 MAX_VELOCITY = 15
 LIGHT_THRESHOLD = 0.05
-OBSTACLE_THRESHOLD = 0.05
+OBSTACLE_THRESHOLD = 0.1
 
 n_steps = 0
-behaviour_active = false
 finish = false
 
 --[[ This function is executed every time you press the 'execute'
      button ]]
 function init()
-	left_v = robot.random.uniform(0,MAX_VELOCITY)
-	right_v = robot.random.uniform(0,MAX_VELOCITY)
-	robot.wheels.set_velocity(left_v,right_v)
+	finish = false
 	n_steps = 0
 	robot.leds.set_all_colors("black")
 end
@@ -27,50 +24,52 @@ function step()
 	if finish then
 		return
 	end
+	
 	n_steps = n_steps + 1
-	behavior_active = false
-
+	
+	lv = robot.random.uniform(0, MAX_VELOCITY)
+    rv = robot.random.uniform(0, MAX_VELOCITY)
+    color = "black"
+    handler = false
 
 	-- LEVEL 3 Stop under light
-	stop()
+	lv, rv, color, finish, handler = stop(lv, rv, color, finish, handler)
 	
 	-- LEVEL 2 Avoid Obstacle
-	avoid_obstacles()
+	lv, rv, color, handler = avoid_obstacles(lv, rv, color, handler)
 	
 	-- LEVEL 1 Find Light --
-	find_light()
+	lv, rv, color, handler = find_light(lv, rv, color, handler)
 	
 	-- LEVEL 0 Move Random --
-	move_random()	
+	lv, rv, color, handler = move_random(lv, rv, color, handler)	
 	
-	robot.wheels.set_velocity(left_v, right_v)
+	robot.wheels.set_velocity(lv, rv)
+	robot.leds.set_all_colors(color)
 		
 end
 	
--- Level 0 --
-function move_random()
-	if behavior_active then 
-		return
+-- Level 0 -- Random walk
+function move_random(lv, rv, color, handler)
+	if handler then
+		return lv, rv, color, handler
 	end
 	
 	if n_steps % MOVE_STEPS == 0 then
-		left_v = robot.random.uniform(0, MAX_VELOCITY)
-		right_v = robot.random.uniform(0, MAX_VELOCITY)
+		lv = robot.random.uniform(0, MAX_VELOCITY)
+		rv = robot.random.uniform(0, MAX_VELOCITY)
 	end
 	
 	log("move_random")
-	
-	robot.leds.set_all_colors("black")
-	
+	return lv, rv, color, handler
+
 end
 
--- Level 1 -- 
-function find_light()
-
-	if behavior_active then 
-		return
+-- Level 1 -- phototaxis
+function find_light(lv, rv, color, handler)	
+	if handler then
+		return lv, rv, color, handler
 	end
-	
 	total_light = 0
 	weighted_direction = 0
 	 
@@ -80,74 +79,67 @@ function find_light()
     	weighted_direction = weighted_direction + intensity * (i - 1)
     end
     
-    if total_light < LIGHT_THRESHOLD then
-    	return
-    end
+    if total_light >= LIGHT_THRESHOLD then
+	    avg_sensor = weighted_direction / total_light
+	    angle = (avg_sensor / (#robot.light - 1)) * math.pi * 2
     
-    avg_sensor = weighted_direction / total_light
-    angle = (avg_sensor / (#robot.light - 1)) * math.pi * 2
+	    lv = MAX_VELOCITY * (1 - math.sin(angle))
+	    rv = MAX_VELOCITY * (1 + math.sin(angle))
+	    color = "yellow"
+	    handler = true
     
-    left_v = MAX_VELOCITY * (1 - math.sin(angle))
-    right_v = MAX_VELOCITY * (1 + math.sin(angle))
-    
-    robot.leds.set_all_colors("yellow")
-    
-    log("Find light")
-    behavior_active = true
+	    log("Find light")
+	end
+	return lv, rv, color, handler
 end
 
 -- Level 2 - Avoid obstacles
-function avoid_obstacles()
-	
-	if behavior_active then 
-		return
+function avoid_obstacles(lv, rv, color, handler)
+	if handler then
+		return lv, rv, color, handler
 	end
-	
 	sensors = {1, 2, 24, 23}
-    obstacle_detected = false
     closest_obstacle_distance = math.huge
     direction = nil
 	for i = 1, #sensors do
         index = sensors[i]
         proximity_value = robot.proximity[index].value
-        if proximity_value > OBSTACLE_THRESHOLD then
-            if proximity_value < closest_obstacle_distance then
+        if proximity_value > OBSTACLE_THRESHOLD and proximity_value < closest_obstacle_distance then
                 closest_obstacle_distance = proximity_value
                 direction = i
-            end
         end
     end
 	
 	if direction then
-		log("avoid_obstacle")
-		behavior_active = true
 		if direction <= 2 then
-			left_v = MAX_VELOCITY
-            right_v = -MAX_VELOCITY 
+			lv = MAX_VELOCITY
+            rv = -MAX_VELOCITY 
 		else
-			left_v = -MAX_VELOCITY 
-            right_v = MAX_VELOCITY
+			lv = -MAX_VELOCITY 
+            rv = MAX_VELOCITY
 		end
+		color = "blue"
+		handler = true
+		log("avoid obstacle")
 	end	
-	
+	return lv, rv, color, handler
 end
 
 -- Level 3 - Stop
-function stop()
-	
-	if behavior_active then 
-		return
+function stop(lv, rv, color, finish, handler)
+	if handler then
+		return lv, rv, color, handler
 	end
-	
     ground_value = robot.motor_ground[1].value
     if ground_value == 0 then
-        left_v = 0
-        right_v = 0
-        robot.leds.set_all_colors("red")
-        log("Stop")
-        behavior_active = true
+        lv = 0
+        rv = 0
+        color = "red"
         finish = true
+        handler = true
+        log("Stop")
     end
+    return lv, rv, color, finish, handler
 end
 	
 
@@ -157,10 +149,8 @@ end
      called. The state of sensors and actuators is reset
      automatically by ARGoS. ]]
 function reset()
-	left_v = robot.random.uniform(0,MAX_VELOCITY)
-	right_v = robot.random.uniform(0,MAX_VELOCITY)
-	robot.wheels.set_velocity(left_v,right_v)
 	n_steps = 0
+	finish = false
 	robot.leds.set_all_colors("black")
 end
 

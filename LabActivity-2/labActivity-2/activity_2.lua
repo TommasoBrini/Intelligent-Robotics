@@ -51,18 +51,16 @@ end
 
 function findLights()
 	-- Read the light sensors
-    light_sensors = {} -- Initialize the light_sensors table
+    light_sensors = {}
     for i = 1, #robot.light do
         light_sensors[i] = robot.light[i].value
     end
     
-	-- Check which direction has the most light
-    -- We will consider the robot's front, left, and right sensors
+	-- Choose the direction with the most light
     left_light = light_sensors[5] + light_sensors[6] + light_sensors[7] + light_sensors[8] -- Left side
     front_light = light_sensors[23] + light_sensors[24] + light_sensors[1] + light_sensors[2] -- Front side
     right_light = light_sensors[17] + light_sensors[18] + light_sensors[19] + light_sensors[20] -- Right side
     
-    -- Choose the direction with the most light
     if front_light > left_light and front_light > right_light then
         -- Move forward if the front has the most light
         robot.wheels.set_velocity(MAX_VELOCITY, MAX_VELOCITY)
@@ -78,11 +76,11 @@ function findLights()
         pos_light = LIGHT_RIGHT
         robot.leds.set_all_colors("green") -- Light detected on the right
     else
-        -- If no significant light is detected, move randomly
+        -- Random walk
         left_v = robot.random.uniform(0, MAX_VELOCITY)
         right_v = robot.random.uniform(0, MAX_VELOCITY)
         robot.wheels.set_velocity(left_v, right_v)
-        robot.leds.set_all_colors("black") -- No light detected, random movement
+        robot.leds.set_all_colors("black")
     end
 end
 	
